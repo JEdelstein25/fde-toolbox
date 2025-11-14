@@ -7,11 +7,31 @@ import {
 } from '@modelcontextprotocol/sdk/types.js'
 
 import type { BitbucketConfig } from './api-client'
-import { searchCode, type CodeSearchArgs } from './tools/code_search'
-import { globFiles, type BitbucketGlobArgs } from './tools/glob'
-import { listProjects, type ListProjectsArgs } from './tools/list_projects'
-import { readFile, type BitbucketReadArgs } from './tools/read'
-import { searchRepositories, type SearchRepositoriesArgs } from './tools/search_repositories'
+import {
+	searchCode,
+	type CodeSearchArgs,
+	toolDefinition as codeSearchTool,
+} from './tools/code_search'
+import {
+	globFiles,
+	type BitbucketGlobArgs,
+	toolDefinition as globFilesTool,
+} from './tools/glob'
+import {
+	listProjects,
+	type ListProjectsArgs,
+	toolDefinition as listProjectsTool,
+} from './tools/list_projects'
+import {
+	readFile,
+	type BitbucketReadArgs,
+	toolDefinition as readFileTool,
+} from './tools/read'
+import {
+	searchRepositories,
+	type SearchRepositoriesArgs,
+	toolDefinition as searchRepositoriesTool,
+} from './tools/search_repositories'
 
 const BITBUCKET_INSTANCE_URL = process.env.BITBUCKET_INSTANCE_URL
 const BITBUCKET_ACCESS_TOKEN = process.env.BITBUCKET_ACCESS_TOKEN
@@ -41,174 +61,11 @@ const server = new Server(
 server.setRequestHandler(ListToolsRequestSchema, async () => {
 	return {
 		tools: [
-			{
-				name: 'read_file',
-				description: `Read file contents from a Bitbucket repository.
-
-PARAMETERS:
-- project: The Bitbucket project key (required)
-- repository: The repository slug (required)
-- path: The file path within the repository (required)
-- read_range: Optional [startLine, endLine] to read only a portion of the file
-
-Returns file contents with line numbers.`,
-				inputSchema: {
-					type: 'object',
-					properties: {
-						project: {
-							type: 'string',
-							description: 'The Bitbucket project key',
-						},
-						repository: {
-							type: 'string',
-							description: 'The repository slug',
-						},
-						path: {
-							type: 'string',
-							description: 'The file path within the repository',
-						},
-						read_range: {
-							type: 'array',
-							description: 'Optional [startLine, endLine] to read only a portion',
-							items: { type: 'number' },
-							minItems: 2,
-							maxItems: 2,
-						},
-					},
-					required: ['project', 'repository', 'path'],
-				},
-			},
-			{
-				name: 'search_code',
-				description: `Search for code across Bitbucket repositories.
-
-PARAMETERS:
-- query: Search query - keywords to find in code (required)
-- project: Filter to specific project key (optional)
-- repository: Filter to specific repository slug (optional)
-- fileGlob: Filter to files matching glob pattern (optional)
-- limit: Maximum results (default: 25)
-
-Returns matching files with code snippets and line numbers.`,
-				inputSchema: {
-					type: 'object',
-					properties: {
-						query: {
-							type: 'string',
-							description: 'Search query - keywords to find in code',
-						},
-						project: {
-							type: 'string',
-							description: 'Filter to specific project key',
-						},
-						repository: {
-							type: 'string',
-							description: 'Filter to specific repository slug',
-						},
-						fileGlob: {
-							type: 'string',
-							description: 'Filter to files matching glob pattern (e.g., "**/*.ts")',
-						},
-						limit: {
-							type: 'number',
-							description: 'Maximum number of results (default: 25)',
-						},
-					},
-					required: ['query'],
-				},
-			},
-			{
-				name: 'list_projects',
-				description: `List projects from Bitbucket.
-
-PARAMETERS:
-- pattern: Optional regex pattern to match project names/keys/descriptions (optional)
-- limit: Maximum number of results (default: 30)
-- offset: Number of results to skip (default: 0)
-
-Returns list of projects with metadata.`,
-				inputSchema: {
-					type: 'object',
-					properties: {
-						pattern: {
-							type: 'string',
-							description: 'Optional regex pattern to filter projects',
-						},
-						limit: {
-							type: 'number',
-							description: 'Maximum number of results (default: 30)',
-						},
-						offset: {
-							type: 'number',
-							description: 'Number of results to skip (default: 0)',
-						},
-					},
-					required: [],
-				},
-			},
-			{
-				name: 'glob_files',
-				description: `Find files matching a glob pattern in a Bitbucket repository.
-
-PARAMETERS:
-- project: The Bitbucket project key (required)
-- repository: The repository slug (required)
-- filePattern: Glob pattern to match files (required, e.g., "**/*.ts")
-- limit: Maximum results (default: 100)
-- offset: Number of results to skip (default: 0)
-
-Returns list of file paths matching the pattern.`,
-				inputSchema: {
-					type: 'object',
-					properties: {
-						project: {
-							type: 'string',
-							description: 'The Bitbucket project key',
-						},
-						repository: {
-							type: 'string',
-							description: 'The repository slug',
-						},
-						filePattern: {
-							type: 'string',
-							description: 'Glob pattern to match files (e.g., "**/*.ts")',
-						},
-						limit: {
-							type: 'number',
-							description: 'Maximum number of results (default: 100)',
-						},
-						offset: {
-							type: 'number',
-							description: 'Number of results to skip (default: 0)',
-						},
-					},
-					required: ['project', 'repository', 'filePattern'],
-				},
-			},
-			{
-				name: 'search_repositories',
-				description: `Search for repositories across Bitbucket.
-
-PARAMETERS:
-- query: Search query - keywords to match repository name/slug/description (required)
-- limit: Maximum results (default: 30)
-
-Returns list of repositories with metadata.`,
-				inputSchema: {
-					type: 'object',
-					properties: {
-						query: {
-							type: 'string',
-							description: 'Search query - keywords to find repositories',
-						},
-						limit: {
-							type: 'number',
-							description: 'Maximum number of results (default: 30)',
-						},
-					},
-					required: ['query'],
-				},
-			},
+			readFileTool,
+			codeSearchTool,
+			listProjectsTool,
+			globFilesTool,
+			searchRepositoriesTool,
 		],
 	}
 })

@@ -6,6 +6,36 @@ export type ListProjectsArgs = {
 	offset?: number
 }
 
+export const toolDefinition = {
+	name: 'list_projects',
+	description: `List projects from Bitbucket.
+
+PARAMETERS:
+- pattern: Optional regex pattern to match project names/keys/descriptions (optional)
+- limit: Maximum number of results (default: 30)
+- offset: Number of results to skip (default: 0)
+
+Returns list of projects with metadata.`,
+	inputSchema: {
+		type: 'object',
+		properties: {
+			pattern: {
+				type: 'string',
+				description: 'Optional regex pattern to filter projects',
+			},
+			limit: {
+				type: 'number',
+				description: 'Maximum number of results (default: 30)',
+			},
+			offset: {
+				type: 'number',
+				description: 'Number of results to skip (default: 0)',
+			},
+		},
+		required: [],
+	},
+} as const
+
 export type ProjectResult = {
 	key: string
 	name: string

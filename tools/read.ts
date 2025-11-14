@@ -7,6 +7,44 @@ export type BitbucketReadArgs = {
 	read_range?: [number, number]
 }
 
+export const toolDefinition = {
+	name: 'read_file',
+	description: `Read file contents from a Bitbucket repository.
+
+PARAMETERS:
+- project: The Bitbucket project key (required)
+- repository: The repository slug (required)
+- path: The file path within the repository (required)
+- read_range: Optional [startLine, endLine] to read only a portion of the file
+
+Returns file contents with line numbers.`,
+	inputSchema: {
+		type: 'object',
+		properties: {
+			project: {
+				type: 'string',
+				description: 'The Bitbucket project key',
+			},
+			repository: {
+				type: 'string',
+				description: 'The repository slug',
+			},
+			path: {
+				type: 'string',
+				description: 'The file path within the repository',
+			},
+			read_range: {
+				type: 'array',
+				description: 'Optional [startLine, endLine] to read only a portion',
+				items: { type: 'number' },
+				minItems: 2,
+				maxItems: 2,
+			},
+		},
+		required: ['project', 'repository', 'path'],
+	},
+} as const
+
 export type BitbucketReadResult = {
 	absolutePath: string
 	content: string

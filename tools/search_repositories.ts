@@ -5,6 +5,31 @@ export type SearchRepositoriesArgs = {
 	limit?: number
 }
 
+export const toolDefinition = {
+	name: 'search_repositories',
+	description: `Search for repositories across Bitbucket.
+
+PARAMETERS:
+- query: Search query - keywords to match repository name/slug/description (required)
+- limit: Maximum results (default: 30)
+
+Returns list of repositories with metadata.`,
+	inputSchema: {
+		type: 'object',
+		properties: {
+			query: {
+				type: 'string',
+				description: 'Search query - keywords to find repositories',
+			},
+			limit: {
+				type: 'number',
+				description: 'Maximum number of results (default: 30)',
+			},
+		},
+		required: ['query'],
+	},
+} as const
+
 export type Repository = {
 	id: number
 	name: string

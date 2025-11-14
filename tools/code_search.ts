@@ -8,6 +8,46 @@ export type CodeSearchArgs = {
 	limit?: number
 }
 
+export const toolDefinition = {
+	name: 'search_code',
+	description: `Search for code across Bitbucket repositories.
+
+PARAMETERS:
+- query: Search query - keywords to find in code (required)
+- project: Filter to specific project key (optional)
+- repository: Filter to specific repository slug (optional)
+- fileGlob: Filter to files matching glob pattern (optional)
+- limit: Maximum results (default: 25)
+
+Returns matching files with code snippets and line numbers.`,
+	inputSchema: {
+		type: 'object',
+		properties: {
+			query: {
+				type: 'string',
+				description: 'Search query - keywords to find in code',
+			},
+			project: {
+				type: 'string',
+				description: 'Filter to specific project key',
+			},
+			repository: {
+				type: 'string',
+				description: 'Filter to specific repository slug',
+			},
+			fileGlob: {
+				type: 'string',
+				description: 'Filter to files matching glob pattern (e.g., "**/*.ts")',
+			},
+			limit: {
+				type: 'number',
+				description: 'Maximum number of results (default: 25)',
+			},
+		},
+		required: ['query'],
+	},
+} as const
+
 export type CodeHit = {
 	repository: {
 		slug: string
