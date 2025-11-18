@@ -1,7 +1,11 @@
 #!/usr/bin/env node
 
 import { spawn, execSync } from "node:child_process";
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 import puppeteer from "puppeteer-core";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const action = process.env.TOOLBOX_ACTION || '';
 
@@ -94,6 +98,19 @@ switch (action) {
         console.log(
           `✓ Chrome started on :9222${useProfile ? " with your profile" : ""}`,
         );
+
+        // Start streaming server detached
+        const serve = spawn(process.execPath, [join(__dirname, 'serve.js')], {
+          detached: true,
+          stdio: ['pipe', 'ignore', 'ignore'],
+          env: { ...process.env, TOOLBOX_ACTION: 'execute' }
+        });
+        serve.stdin.write(JSON.stringify({ port: 3000 }));
+        serve.stdin.end();
+        serve.unref();
+
+        console.log("✓ Streaming server started on http://localhost:3000");
+        console.log("  Open 'Simple Browser' in VS Code to view: http://localhost:3000");
       } catch (error) {
         console.error(`Error: ${error.message}`);
         process.exit(1);
