@@ -14,7 +14,7 @@ Specialized subagent tools with custom system prompts, models, and filtered tool
 ---
 type: subagent
 model: claude-sonnet-4-5-20250929
-toolPatterns: [Read, edit_file, Grep, tb__typescript_*]
+tools: [Read, edit_file, Grep, tb__typescript_*]
 ---
 # Refactoring Assistant
 You are a focused refactoring assistant. Make minimal, safe changes.
