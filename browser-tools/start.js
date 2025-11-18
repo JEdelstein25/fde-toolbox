@@ -20,7 +20,7 @@ switch (action) {
           useProfile: {
             type: 'boolean',
             description: 'If true, copy your default Chrome profile (cookies, logins). If false, start with fresh profile.',
-            default: false
+            default: true
           }
         },
         required: []
@@ -36,7 +36,7 @@ switch (action) {
     process.stdin.on('end', async () => {
       try {
         const params = JSON.parse(input || '{}');
-        const useProfile = params.useProfile || false;
+        const useProfile = params.useProfile ?? true;
 
         // Kill existing Chrome
         // try {
@@ -64,7 +64,7 @@ switch (action) {
         ];
         
         if (useProfile) {
-          args.push('--profile-directory=Profile 2');
+          args.push('--profile-directory=Jesse');
         }
 
         spawn(
@@ -94,6 +94,16 @@ switch (action) {
           console.error("✗ Failed to connect to Chrome");
           process.exit(1);
         }
+
+        // Establish an initial page
+        const browser = await puppeteer.connect({
+          browserURL: "http://localhost:9222",
+          defaultViewport: null,
+        });
+        const pages = await browser.pages();
+        const page = pages.length > 0 ? pages[0] : await browser.newPage();
+        await page.goto("about:blank");
+        await browser.disconnect();
 
         console.log(
           `✓ Chrome started on :9222${useProfile ? " with your profile" : ""}`,

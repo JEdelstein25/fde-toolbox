@@ -48,23 +48,21 @@ switch (action) {
           defaultViewport: null,
         });
 
+        const pages = await b.pages();
+        
         if (newTab) {
           const p = await b.newPage();
           await p.goto(url, { waitUntil: "domcontentloaded" });
-          console.log("✓ Opened:", url);
+          console.log("✓ Opened in new tab:", url);
         } else {
-          const pages = await b.pages();
-          const p = pages[0];
-          //const p = (await b.pages()).at(-1);
+          // Reuse existing page if available, otherwise create one
+          let p = pages[0];
           if (!p) {
-              // If no pages, create one
-              const newPage = await b.newPage();
-              await newPage.goto(url, { waitUntil: "domcontentloaded" });
-              console.log("✓ Opened:", url);
-          } else {
-              await p.goto(url, { waitUntil: "domcontentloaded" });
-              console.log("✓ Navigated to:", url);
+            p = await b.newPage();
           }
+          await p.goto(url, { waitUntil: "domcontentloaded" });
+          await p.bringToFront();
+          console.log("✓ Opened:", url);
         }
 
         await b.disconnect();
