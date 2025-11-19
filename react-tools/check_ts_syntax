@@ -1,0 +1,177 @@
+#!/usr/bin/env node
+/**
+ * Toolbox Tool: check-ts-syntax
+ * 
+ * Incrementally compile/parse a TypeScript file to check for syntax errors.
+ * Works on individual files even when the tsconfig is not fully type-safe.
+ */
+
+const action = process.env.TOOLBOX_ACTION;
+
+if (action === 'describe') {
+	showDescription();
+} else if (action === 'execute') {
+	execute();
+}
+
+function showDescription() {
+	const spec = {
+		name: 'check_ts_syntax',
+		description: 'Incrementally compile/parse a TypeScript file to check for syntax errors. Works on individual files even when the tsconfig is not fully compliant. Returns syntax errors, parse errors, and basic type errors.',
+		inputSchema: {
+			type: 'object',
+			properties: {
+				filePath: {
+					type: 'string',
+					description: 'Absolute path to the TypeScript/JavaScript file to check',
+				},
+				strict: {
+					type: 'boolean',
+					description: 'Enable strict type checking (default: false - only checks syntax)',
+				},
+			},
+			required: ['filePath'],
+		},
+		meta: {
+			subagentTypes: ['scope'],
+		},
+	};
+	process.stdout.write(JSON.stringify(spec));
+}
+
+async function execute() {
+	try {
+		const { Project } = await import('ts-morph');
+		const fs = await import('fs');
+		
+		const input = JSON.parse(fs.readFileSync(0, 'utf-8'));
+		const filePath = input.filePath;
+		const strictMode = input.strict || false;
+
+		if (!fs.existsSync(filePath)) {
+			console.error(JSON.stringify({ error: `File not found: ${filePath}` }));
+			process.exit(1);
+		}
+
+		const fileContent = fs.readFileSync(filePath, 'utf-8');
+		
+		const project = new Project({
+			useInMemoryFileSystem: true,
+			skipLoadingLibFiles: true,
+			skipAddingFilesFromTsConfig: true,
+			skipFileDependencyResolution: !strictMode,
+			compilerOptions: {
+				allowJs: true,
+				checkJs: strictMode,
+				noEmit: true,
+				strict: strictMode,
+				noImplicitAny: strictMode,
+				strictNullChecks: strictMode,
+				jsx: 1,
+				target: 99,
+				module: 99,
+			},
+		});
+
+		const ext = filePath.endsWith('.tsx') ? '.tsx' : 
+		           filePath.endsWith('.jsx') ? '.jsx' :
+		           filePath.endsWith('.js') ? '.js' : '.ts';
+		
+		const sourceFile = project.createSourceFile(`temp${ext}`, fileContent);
+		const program = project.getProgram().compilerObject;
+		
+		const syntaxErrors = [];
+		const semanticErrors = [];
+		
+		function processDiagnostic(diagnostic) {
+			const message = diagnostic.getMessageText();
+			const messageText = typeof message === 'string' ? message : message.getMessageText();
+			const category = diagnostic.getCategory();
+			const categoryName = category === 0 ? 'warning' : 
+			                     category === 1 ? 'error' : 
+			                     category === 2 ? 'suggestion' : 'message';
+			
+			const start = diagnostic.getStart();
+			const length = diagnostic.getLength();
+			
+			let line = 'unknown';
+			let column = 'unknown';
+			let excerpt = '';
+			
+			if (start !== undefined) {
+				const lineAndCol = sourceFile.getLineAndColumnAtPos(start);
+				line = lineAndCol.line;
+				column = lineAndCol.column;
+				
+				if (length !== undefined) {
+					excerpt = fileContent.substring(start, start + Math.min(length, 100));
+					if (length > 100) excerpt += '...';
+				}
+			}
+			
+			return {
+				message: messageText,
+				category: categoryName,
+				line,
+				column,
+				code: diagnostic.getCode(),
+				excerpt: excerpt || undefined,
+			};
+		}
+		
+		const syntacticDiagnostics = program.getSyntacticDiagnostics(sourceFile.compilerNode);
+		
+		for (const diagnostic of syntacticDiagnostics) {
+			syntaxErrors.push({
+				message: typeof diagnostic.messageText === 'string' ? diagnostic.messageText : diagnostic.messageText.messageText,
+				category: diagnostic.category === 0 ? 'warning' : diagnostic.category === 1 ? 'error' : 'suggestion',
+				line: diagnostic.start !== undefined ? sourceFile.compilerNode.getLineAndCharacterOfPosition(diagnostic.start).line + 1 : 'unknown',
+				column: diagnostic.start !== undefined ? sourceFile.compilerNode.getLineAndCharacterOfPosition(diagnostic.start).character + 1 : 'unknown',
+				code: diagnostic.code,
+				excerpt: diagnostic.start !== undefined && diagnostic.length !== undefined ? 
+					fileContent.substring(diagnostic.start, diagnostic.start + Math.min(diagnostic.length, 100)) : undefined,
+			});
+		}
+		
+		if (strictMode) {
+			const semanticDiags = program.getSemanticDiagnostics(sourceFile.compilerNode);
+			
+			for (const diagnostic of semanticDiags) {
+				semanticErrors.push({
+					message: typeof diagnostic.messageText === 'string' ? diagnostic.messageText : diagnostic.messageText.messageText,
+					category: diagnostic.category === 0 ? 'warning' : diagnostic.category === 1 ? 'error' : 'suggestion',
+					line: diagnostic.start !== undefined ? sourceFile.compilerNode.getLineAndCharacterOfPosition(diagnostic.start).line + 1 : 'unknown',
+					column: diagnostic.start !== undefined ? sourceFile.compilerNode.getLineAndCharacterOfPosition(diagnostic.start).character + 1 : 'unknown',
+					code: diagnostic.code,
+					excerpt: diagnostic.start !== undefined && diagnostic.length !== undefined ? 
+						fileContent.substring(diagnostic.start, diagnostic.start + Math.min(diagnostic.length, 100)) : undefined,
+				});
+			}
+		}
+		
+		const allErrors = [...syntaxErrors, ...semanticErrors];
+		const hasErrors = allErrors.some(e => e.category === 'error');
+		
+		const result = {
+			filePath,
+			valid: !hasErrors,
+			strictMode,
+			summary: {
+				totalErrors: allErrors.filter(e => e.category === 'error').length,
+				totalWarnings: allErrors.filter(e => e.category === 'warning').length,
+				syntaxErrors: syntaxErrors.length,
+				semanticErrors: semanticErrors.length,
+			},
+			syntaxErrors,
+			semanticErrors,
+		};
+
+		console.log(JSON.stringify(result, null, 2));
+	} catch (error) {
+		console.error(JSON.stringify({ 
+			error: error.message,
+			stack: error.stack 
+		}));
+		process.exit(1);
+	}
+}

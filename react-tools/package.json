@@ -1,0 +1,9 @@
+{
+  "name": "react-tools",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "ts-morph": "^24.0.0",
+    "glob": "^11.0.0"
+  }
+}
